@@ -1,8 +1,12 @@
 import csv
 from dataclasses import dataclass, fields, astuple
+import time
+
 from bs4 import BeautifulSoup, Tag
 from urllib.parse import urljoin
 from selenium import webdriver
+from selenium.common import NoSuchElementException
+from selenium.common import ElementNotInteractableException
 from selenium.webdriver.common.by import By
 
 
@@ -54,13 +58,20 @@ def get_all_products() -> None:
     for filename, url in PAGE_URLS.items():
         driver.get(url)
 
+        try:
+            button = driver.find_element(By.CLASS_NAME, "acceptCookies")
+            button.click()
+        except NoSuchElementException:
+            pass
+
         while True:
             try:
                 button = driver.find_element(
                     By.CLASS_NAME, "ecomerce-items-scroll-more"
                 )
                 button.click()
-            except:
+                time.sleep(1)
+            except (NoSuchElementException, ElementNotInteractableException):
                 break
 
         soup = BeautifulSoup(driver.page_source, "html.parser")
@@ -71,7 +82,7 @@ def get_all_products() -> None:
             writer = csv.writer(f)
             writer.writerow(PRODUCT_FIELDS)
             writer.writerows(astuple(p) for p in product_objs)
-
+    driver.close()
 
 def main() -> None:
     get_all_products()
